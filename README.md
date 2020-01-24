@@ -1,56 +1,62 @@
-go-recaptcha
-============
+# go-recaptcha
+[![Build Status](https://travis-ci.org/tekkamanendless/go-recaptcha.png)](https://travis-ci.org/tekkamanendless/go-recaptcha)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tekkamanendless/go-recaptcha)](https://goreportcard.com/report/github.com/tekkamanendless/go-recaptcha)
+[![GoDoc](https://godoc.org/github.com/tekkamanendless/go-recaptcha?status.svg)](https://godoc.org/github.com/tekkamanendless/go-recaptcha)
 
-https://godoc.org/github.com/dpapathanasiou/go-recaptcha
+## About
+This package handles [reCAPTCHA](https://www.google.com/recaptcha) (API versions [2](https://developers.google.com/recaptcha/intro) and [3](https://developers.google.com/recaptcha/docs/v3)) form submissions in [Go](http://golang.org/).
 
-About
------
-
-This package handles [reCaptcha](https://www.google.com/recaptcha) (API versions [2](https://developers.google.com/recaptcha/intro) and [3](https://developers.google.com/recaptcha/docs/v3)) form submissions in [Go](http://golang.org/).
-
-Usage
------
-
-Install the package in your environment:
+## Usage
+Import the package:
 
 ```
-go get github.com/dpapathanasiou/go-recaptcha
+import "github.com/tekkamanendless/go-recaptcha"
 ```
 
-To use it within your own code, import <tt>github.com/dpapathanasiou/go-recaptcha</tt> and call:
+Create a new reCAPTCHA verifier.
 
 ```
-recaptcha.Init (recaptchaPrivateKey)
+recaptchaVerifier := recaptcha.New("YOUR_PRIVATE_KEY")
 ```
 
-once, to set the reCaptcha private key for your domain, then:
+Verify a token.
 
 ```
-recaptcha.Confirm (clientIpAddress, recaptchaResponse)
+success, err := recaptchaVerifier.Verify("SOME_RECAPTCHA_RESPONSE_TOKEN")
 ```
 
-### [reCAPTCHA v2](https://developers.google.com/recaptcha/intro)
-For each reCaptcha form input you need to check, using the values obtained by reading the form's POST parameters (the <tt>recaptchaResponse</tt> in the above corresponds to the value of <tt>g-recaptcha-response</tt> sent by the reCaptcha server.)
+Or verify with a client IP address, too:
 
-The recaptcha.Confirm() function returns either true (i.e., the captcha was completed correctly) or false, along with any errors (from the HTTP io read or the attempt to unmarshal the JSON reply).
+```
+success, err := recaptchaVerifier.VerifyRemoteIP(clientIpAddress, "SOME_RECAPTCHA_RESPONSE_TOKEN")
+```
 
-### [reCAPTCHA v3](https://developers.google.com/recaptcha/docs/v3)
+This workflow supports both [reCAPTCHA v2](https://developers.google.com/recaptcha/intro) and [reCAPTCHA v3](https://developers.google.com/recaptcha/docs/v3).
 
-Version 3 works differently: instead of interrupting page visitors with a prompt, it runs in the background, computing a score.
+## Testing
+You may use the included `recaptchatest` package to create a reCAPTCHA server suitable for unit testing.
 
-This repo has been updated to handle the [score and action in the response](recaptcha.go#L20), but the usage example is still in terms of version 2.
+```
+import "github.com/tekkamanendless/go-recaptcha/recaptchatest"
+```
 
-Usage Example
--------------
+```
+// Create a new reCAPTCHA test server.
+testServer := recaptchatest.NewServer()
+defer testServer.Close()
 
-Included with this repo is [example.go](example/example.go), a simple HTTP server which creates the reCaptcha form and tests the input.
+// Create a new site.
+site := testServer.NewSite()
 
-See the [instructions](example/README.md) for running the example for more details.
+// Create your reCAPTCHA verifier normally.
+r := recaptcha.New(site.PrivateKey)
 
-## Donate
+// Override the endpoint.
+r.VerifyEndpoint = testServer.VerifyEndpoint()
 
-If you find this work useful, please consider making a donation:
+// Generate a response token from the site.
+token := site.NewResponseToken()
 
-<a href="bitcoin:14TM4ADKJbaGEi8Qr8dh4KfPBQmjTshkZ2">Bitcoin Donate</a> `14TM4ADKJbaGEi8Qr8dh4KfPBQmjTshkZ2`
-
-![QR code](https://bitref.com/qr.php?data=14TM4ADKJbaGEi8Qr8dh4KfPBQmjTshkZ2)
+// Verify the token normally.
+success, err := r.Verify(token)
+```
