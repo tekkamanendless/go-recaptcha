@@ -49,14 +49,14 @@ defer testServer.Close()
 site := testServer.NewSite()
 
 // Create your reCAPTCHA verifier normally.
-r := recaptcha.New(site.PrivateKey)
+recaptchaVerifier := recaptcha.New(site.PrivateKey)
 
 // Override the endpoint.
-r.VerifyEndpoint = testServer.VerifyEndpoint()
+recaptchaVerifier.VerifyEndpoint = testServer.VerifyEndpoint()
 
 // Generate a response token from the site.
 token := site.NewResponseToken()
 
 // Verify the token normally.
-success, err := r.Verify(token)
+success, err := recaptchaVerifier.Verify(token)
 ```
